@@ -45,9 +45,12 @@ def init_db():
                     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                     app_name TEXT NOT NULL,
                     spending_limit_cents INTEGER DEFAULT 1000,
+                    vm_password TEXT,
                     granted_at TIMESTAMPTZ DEFAULT NOW(),
                     UNIQUE (user_id, app_name)
                 );
+
+                ALTER TABLE app_access ADD COLUMN IF NOT EXISTS vm_password TEXT;
 
                 CREATE TABLE IF NOT EXISTS meridian_usage_log (
                     id SERIAL PRIMARY KEY,
@@ -113,15 +116,16 @@ def create_user(email: str, password_hash: str, name: str = "",
 
 
 def grant_app_access(user_id: int, app_name: str,
-                     spending_limit_cents: int | None = None) -> None:
+                     spending_limit_cents: int | None = None,
+                     vm_password: str | None = None) -> None:
     limit = spending_limit_cents or settings.default_spending_limit_cents
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO app_access (user_id, app_name, spending_limit_cents)
-                   VALUES (%s, %s, %s)
+                """INSERT INTO app_access (user_id, app_name, spending_limit_cents, vm_password)
+                   VALUES (%s, %s, %s, %s)
                    ON CONFLICT (user_id, app_name) DO NOTHING""",
-                (user_id, app_name, limit)
+                (user_id, app_name, limit, vm_password)
             )
 
 
