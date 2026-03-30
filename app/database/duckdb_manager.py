@@ -6,7 +6,7 @@ import duckdb
 from app.config import settings
 
 DATA_DIR = settings.data_dir
-M = DATA_DIR / "meridian"
+M = DATA_DIR
 
 # Each enterprise system has its own isolated tables
 SYSTEMS = {
