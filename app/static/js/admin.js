@@ -85,7 +85,7 @@ async function loadUsage() {
             const tr = document.createElement('tr');
             tr.className = 'usage-row';
             tr.innerHTML = `
-                <td>${formatTime(u.timestamp)}</td>
+                <td>${formatTime(u.created_at || u.timestamp)}</td>
                 <td>${u.email || u.name || '-'}</td>
                 <td class="text-end">${formatTokens(u.input_tokens || 0)}</td>
                 <td class="text-end">${formatTokens(u.output_tokens || 0)}</td>
@@ -136,6 +136,43 @@ document.getElementById('create-user-form').addEventListener('submit', async (e)
         successEl.style.display = 'block';
         document.getElementById('create-user-form').reset();
         document.getElementById('new-limit').value = '10';
+        loadUsers();
+    } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+    }
+});
+
+// CSV bulk upload
+document.getElementById('csv-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const successEl = document.getElementById('csv-success');
+    const errorEl = document.getElementById('csv-error');
+    successEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    const fileInput = document.getElementById('csv-file');
+    if (!fileInput.files.length) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        const res = await fetch('/api/admin/users/bulk', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+        });
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.detail || 'Upload failed');
+        }
+        const data = await res.json();
+        let msg = `Created ${data.created.length} user(s).`;
+        if (data.skipped.length) msg += ` Skipped ${data.skipped.length} (already exist).`;
+        successEl.textContent = msg;
+        successEl.style.display = 'block';
+        fileInput.value = '';
         loadUsers();
     } catch (err) {
         errorEl.textContent = err.message;

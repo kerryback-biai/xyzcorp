@@ -4,7 +4,9 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.database.user_db import init_db
+from app.config import settings
+from app.auth.dependencies import hash_password
+from app.database.user_db import init_db, get_user_by_email, create_user, update_user
 from app.auth.routes import router as auth_router
 from app.admin.routes import router as admin_router
 from app.chat.routes import router as chat_router
@@ -12,9 +14,26 @@ from app.chat.routes import router as chat_router
 STATIC_DIR = "app/static"
 
 
+def ensure_admin():
+    if not settings.admin_user or not settings.admin_password:
+        return
+    existing = get_user_by_email(settings.admin_user)
+    if existing:
+        if not existing["is_admin"]:
+            update_user(existing["id"], is_admin=True)
+    else:
+        create_user(
+            email=settings.admin_user,
+            password_hash=hash_password(settings.admin_password),
+            name="Admin",
+            is_admin=True,
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    ensure_admin()
     yield
 
 

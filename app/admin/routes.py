@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import csv
+import io
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from pydantic import BaseModel
 
 from app.admin.dependencies import require_admin
@@ -52,6 +55,35 @@ def admin_update_user(user_id: int, req: UpdateUserRequest,
         raise HTTPException(status_code=400, detail="No fields to update")
     update_user(user_id, **updates)
     return {"ok": True}
+
+
+@router.post("/users/bulk")
+async def admin_bulk_create(file: UploadFile = File(...),
+                            _admin: dict = Depends(require_admin)):
+    """Upload a CSV with columns: email, password, name (optional), spending_limit (optional, in dollars)."""
+    content = (await file.read()).decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(content))
+    created = []
+    skipped = []
+    for row in reader:
+        email = row.get("email", "").strip()
+        password = row.get("password", "").strip()
+        if not email or not password:
+            continue
+        if get_user_by_email(email):
+            skipped.append(email)
+            continue
+        name = row.get("name", "").strip()
+        limit = row.get("spending_limit", "")
+        limit_cents = int(float(limit) * 100) if limit.strip() else None
+        create_user(
+            email=email,
+            password_hash=hash_password(password),
+            name=name,
+            spending_limit_cents=limit_cents,
+        )
+        created.append(email)
+    return {"created": created, "skipped": skipped}
 
 
 @router.get("/usage")
