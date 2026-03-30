@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.auth.dependencies import hash_password
-from app.database.user_db import init_db, get_user_by_email, create_user, update_user, grant_app_access
+from app.database.user_db import init_db, get_user_by_username, create_user, update_user, grant_app_access
 from app.auth.routes import router as auth_router
 from app.admin.routes import router as admin_router
 from app.chat.routes import router as chat_router
@@ -17,14 +17,14 @@ STATIC_DIR = "app/static"
 def ensure_admin():
     if not settings.admin_user or not settings.admin_password:
         return
-    existing = get_user_by_email(settings.admin_user)
+    existing = get_user_by_username(settings.admin_user)
     if existing:
         if not existing["is_admin"]:
             update_user(existing["id"], is_admin=True)
         user_id = existing["id"]
     else:
         user_id = create_user(
-            email=settings.admin_user,
+            username=settings.admin_user,
             password_hash=hash_password(settings.admin_password),
             name="Admin",
             is_admin=True,

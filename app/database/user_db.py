@@ -32,13 +32,18 @@ def init_db():
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
-                    email TEXT UNIQUE NOT NULL,
+                    username TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     name TEXT NOT NULL DEFAULT '',
                     is_admin BOOLEAN DEFAULT FALSE,
                     is_active BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 );
+
+                DO $$ BEGIN
+                    ALTER TABLE users RENAME COLUMN email TO username;
+                EXCEPTION WHEN undefined_column THEN NULL;
+                END $$;
 
                 CREATE TABLE IF NOT EXISTS app_access (
                     id SERIAL PRIMARY KEY,
@@ -80,10 +85,10 @@ def init_db():
             """)
 
 
-def get_user_by_email(email: str) -> dict | None:
+def get_user_by_username(username: str) -> dict | None:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
             row = cur.fetchone()
             return dict(row) if row else None
 
@@ -96,15 +101,15 @@ def get_user_by_id(user_id: int) -> dict | None:
             return dict(row) if row else None
 
 
-def create_user(email: str, password_hash: str, name: str = "",
+def create_user(username: str, password_hash: str, name: str = "",
                 is_admin: bool = False, spending_limit_cents: int | None = None) -> int:
     limit = spending_limit_cents or settings.default_spending_limit_cents
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO users (email, password_hash, name, is_admin)
+                """INSERT INTO users (username, password_hash, name, is_admin)
                    VALUES (%s, %s, %s, %s) RETURNING id""",
-                (email, password_hash, name, is_admin)
+                (username, password_hash, name, is_admin)
             )
             user_id = cur.fetchone()[0]
             cur.execute(
@@ -133,7 +138,7 @@ def list_users() -> list[dict]:
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
-                SELECT u.id, u.email, u.name, u.is_admin, u.is_active,
+                SELECT u.id, u.username, u.name, u.is_admin, u.is_active,
                        COALESCE(a.spending_limit_cents, %s) as spending_limit_cents,
                        u.created_at,
                        COALESCE(SUM(l.cost_cents), 0) as total_cost_cents
@@ -205,7 +210,7 @@ def get_usage_summary(user_id: int | None = None) -> list[dict]:
                 )
             else:
                 cur.execute(
-                    """SELECT l.*, u.email, u.name
+                    """SELECT l.*, u.username, u.name
                        FROM meridian_usage_log l JOIN users u ON l.user_id = u.id
                        ORDER BY l.created_at DESC LIMIT 500"""
                 )

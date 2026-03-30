@@ -18,8 +18,8 @@
             <div class="alert alert-danger error-msg" id="error"></div>
             <form id="login-form">
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" required autofocus>
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" required autofocus>
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">Password</label>
@@ -48,7 +48,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email: document.getElementById('email').value,
+                        username: document.getElementById('username').value,
                         password: document.getElementById('password').value,
                     }),
                 });

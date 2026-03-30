@@ -46,7 +46,7 @@ async function loadUsers() {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${u.email}</td>
+                <td>${u.username}</td>
                 <td>${u.name || '-'}</td>
                 <td>
                     ${u.is_admin ? '<span class="badge badge-admin">admin</span> ' : ''}
@@ -86,7 +86,7 @@ async function loadUsage() {
             tr.className = 'usage-row';
             tr.innerHTML = `
                 <td>${formatTime(u.created_at || u.timestamp)}</td>
-                <td>${u.email || u.name || '-'}</td>
+                <td>${u.username || u.name || '-'}</td>
                 <td class="text-end">${formatTokens(u.input_tokens || 0)}</td>
                 <td class="text-end">${formatTokens(u.output_tokens || 0)}</td>
                 <td class="text-end">${formatTokens(u.cache_read_tokens || 0)}</td>
@@ -110,7 +110,7 @@ document.getElementById('create-user-form').addEventListener('submit', async (e)
     successEl.style.display = 'none';
     errorEl.style.display = 'none';
 
-    const email = document.getElementById('new-email').value.trim();
+    const username = document.getElementById('new-username').value.trim();
     const name = document.getElementById('new-name').value.trim();
     const password = document.getElementById('new-password').value;
     const limitDollars = parseFloat(document.getElementById('new-limit').value) || 10;
@@ -120,7 +120,7 @@ document.getElementById('create-user-form').addEventListener('submit', async (e)
             method: 'POST',
             headers,
             body: JSON.stringify({
-                email,
+                username,
                 name,
                 password,
                 spending_limit_cents: Math.round(limitDollars * 100),
@@ -132,7 +132,7 @@ document.getElementById('create-user-form').addEventListener('submit', async (e)
             throw new Error(data.detail || 'Failed to create user');
         }
 
-        successEl.textContent = `Created user: ${email}`;
+        successEl.textContent = `Created user: ${username}`;
         successEl.style.display = 'block';
         document.getElementById('create-user-form').reset();
         document.getElementById('new-limit').value = '10';
