@@ -20,6 +20,7 @@ class CreateUserRequest(BaseModel):
     name: str = ""
     is_admin: bool = False
     spending_limit_cents: int | None = None
+    apps: list[str] = ["meridian"]
 
 
 class UpdateUserRequest(BaseModel):
@@ -45,6 +46,12 @@ def admin_create_user(req: CreateUserRequest, _admin: dict = Depends(require_adm
         is_admin=req.is_admin,
         spending_limit_cents=req.spending_limit_cents,
     )
+    for app_name in req.apps:
+        grant_app_access(
+            user_id, app_name,
+            spending_limit_cents=req.spending_limit_cents,
+            vm_password=req.password if app_name == "vm" else None,
+        )
     return {"id": user_id, "username": req.username}
 
 
