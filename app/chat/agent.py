@@ -6,13 +6,13 @@ import anthropic
 
 from app.config import settings
 from app.chat.tools import get_tools
-from app.chat.stream import sse_text, sse_tool_status, sse_image, sse_error, sse_done
+from app.chat.stream import sse_text, sse_tool_status, sse_image, sse_file, sse_error, sse_done
+from app.chat.code_executor import execute_python, execute_node, read_skill_docs
 from app.database.duckdb_manager import execute_query
 
 MODEL = "claude-sonnet-4-20250514"
 MAX_TOKENS = 8192
-MAX_TOOL_ROUNDS = 10
-CHART_PREFIX = "CHART_BASE64:"
+MAX_TOOL_ROUNDS = 12
 
 PROMPTS_DIR = Path(__file__).parent.parent / "system_prompts"
 
@@ -27,19 +27,27 @@ def _execute_tool(name: str, tool_input: dict) -> str:
     if name == "query_database":
         result = execute_query(tool_input["sql"], tool_input.get("system", "salesforce"))
         return json.dumps(result, default=str)
+    if name == "run_python":
+        result = execute_python(tool_input["code"])
+        return json.dumps(result, default=str)
+    if name == "run_node":
+        result = execute_node(tool_input["code"])
+        return json.dumps(result, default=str)
+    if name == "read_skill_docs":
+        result = read_skill_docs(tool_input["skill"])
+        return json.dumps(result, default=str)
     return json.dumps({"error": f"Unknown tool: {name}"})
 
 
-def _extract_charts_from_stdout(stdout: str):
-    """Extract base64 chart images from stdout. Returns (cleaned_stdout, list_of_base64)."""
-    charts = []
-    lines = []
-    for line in stdout.split("\n"):
-        if line.startswith(CHART_PREFIX):
-            charts.append(line[len(CHART_PREFIX):].strip())
-        else:
-            lines.append(line)
-    return "\n".join(lines).strip(), charts
+# Tools that produce files and charts
+_CODE_TOOLS = {"run_python", "run_node"}
+
+# Status messages per tool
+_TOOL_STATUS = {
+    "run_python": "Running Python code...",
+    "run_node": "Running Node.js code...",
+    "read_skill_docs": "Loading API docs...",
+}
 
 
 def _run_agent_sync(
@@ -61,9 +69,6 @@ def _run_agent_sync(
 
     try:
         for _round in range(MAX_TOOL_ROUNDS):
-            # Track which block types we see for post-processing
-            seen_code_exec = False
-
             with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
@@ -72,12 +77,7 @@ def _run_agent_sync(
                 tools=tools,
             ) as stream:
                 for event in stream:
-                    if event.type == "content_block_start":
-                        if hasattr(event.content_block, "type"):
-                            if event.content_block.type == "server_tool_use":
-                                yield sse_tool_status("Running Python code...")
-                                seen_code_exec = True
-                    elif event.type == "content_block_delta":
+                    if event.type == "content_block_delta":
                         if hasattr(event.delta, "type"):
                             if event.delta.type == "text_delta":
                                 yield sse_text(event.delta.text)
@@ -90,30 +90,32 @@ def _run_agent_sync(
             if hasattr(response.usage, "cache_read_input_tokens"):
                 total_cache_read += response.usage.cache_read_input_tokens or 0
 
-            # Process response content blocks for code execution results and images
-            for block in response.content:
-                if block.type == "code_execution_tool_result":
-                    block_data = block.model_dump() if hasattr(block, "model_dump") else {}
-                    content_data = block_data.get("content", {})
-                    stdout = content_data.get("stdout", "")
-
-                    if stdout:
-                        cleaned, charts = _extract_charts_from_stdout(stdout)
-                        # Send any chart images
-                        for chart_b64 in charts:
-                            yield sse_image(chart_b64)
-
-            # If no client-side tool use needed, we're done
+            # If no tool use, we're done
             if response.stop_reason != "tool_use":
                 break
 
-            # Process client-side tool calls (query_database)
+            # Process tool calls
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
-                    system_name = block.input.get("system", "database") if isinstance(block.input, dict) else "database"
-                    yield sse_tool_status(f"Querying {system_name}...")
+                    # Show status
+                    if block.name == "query_database":
+                        system_name = block.input.get("system", "database") if isinstance(block.input, dict) else "database"
+                        yield sse_tool_status(f"Querying {system_name}...")
+                    elif block.name in _TOOL_STATUS:
+                        yield sse_tool_status(_TOOL_STATUS[block.name])
+
+                    # Execute the tool
                     result_str = _execute_tool(block.name, block.input)
+
+                    # For code tools, emit charts and file links
+                    if block.name in _CODE_TOOLS:
+                        result_data = json.loads(result_str)
+                        for chart_b64 in result_data.get("charts", []):
+                            yield sse_image(chart_b64)
+                        for file_info in result_data.get("files", []):
+                            yield sse_file(file_info["filename"], file_info["url"])
+
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": block.id,

@@ -65,8 +65,9 @@ logoutBtn.addEventListener('click', () => {
 function showWelcome() {
     messagesEl.innerHTML = `
         <div class="welcome">
-            <h2>XYZ Corp Data Assistant</h2>
-            <p>Query across 10 enterprise systems spanning 3 operating divisions. Ask questions in plain English — I'll pull data from the right systems and merge it for you.</p>
+            <h2>XYZ Corp Data Simulation</h2>
+            <p class="text-muted mb-1" style="font-size: 0.85rem;">Rice Business Executive Education &middot; Professor Kerry Back</p>
+            <p class="mt-3">Query across 10 enterprise systems spanning 3 operating divisions. Ask questions in plain English — I'll pull data from the right systems and merge it for you.</p>
             <div class="db-overview">
                 <div class="row g-3 mt-3">
                     <div class="col-md-6">
@@ -188,6 +189,14 @@ async function sendMessage() {
                         const img = document.createElement('img');
                         img.src = `data:image/png;base64,${event.data}`;
                         contentEl.appendChild(img);
+                    } else if (event.type === 'file') {
+                        const link = document.createElement('a');
+                        link.href = event.url;
+                        link.download = event.filename;
+                        link.className = 'file-download';
+                        link.innerHTML = `📄 Download ${event.filename}`;
+                        link.target = '_blank';
+                        contentEl.appendChild(link);
                     } else if (event.type === 'error') {
                         contentEl.innerHTML += `<div class="alert alert-danger">${event.message}</div>`;
                     }

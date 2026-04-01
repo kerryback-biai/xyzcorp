@@ -22,6 +22,10 @@ def sse_image(base64_data: str) -> str:
     return sse_event("image", {"data": base64_data})
 
 
+def sse_file(filename: str, url: str) -> str:
+    return sse_event("file", {"filename": filename, "url": url})
+
+
 def sse_error(message: str) -> str:
     return sse_event("error", {"message": message})
 

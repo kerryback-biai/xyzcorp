@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -49,6 +49,20 @@ app.include_router(chat_router)
 # Static assets (CSS, JS)
 app.mount("/css", StaticFiles(directory=f"{STATIC_DIR}/css"), name="css")
 app.mount("/js", StaticFiles(directory=f"{STATIC_DIR}/js"), name="js")
+
+
+# File downloads for generated documents
+@app.get("/api/files/{filename}")
+async def download_file(filename: str):
+    from app.chat.code_executor import get_file_path
+    path = get_file_path(filename)
+    if not path:
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(
+        path=str(path),
+        filename=filename,
+        media_type="application/octet-stream",
+    )
 
 
 # HTML pages
