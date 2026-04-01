@@ -46,6 +46,8 @@ def init_db():
 
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_limit_cents INTEGER DEFAULT 1000;
 
+                DROP TABLE IF EXISTS app_access;
+
                 CREATE TABLE IF NOT EXISTS meridian_usage_log (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER REFERENCES users(id),
