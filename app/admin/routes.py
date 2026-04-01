@@ -8,7 +8,6 @@ from app.admin.dependencies import require_admin
 from app.auth.dependencies import hash_password
 from app.database.user_db import (
     list_users, create_user, update_user, get_user_by_username, get_usage_summary,
-    grant_app_access,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -20,7 +19,6 @@ class CreateUserRequest(BaseModel):
     name: str = ""
     is_admin: bool = False
     spending_limit_cents: int | None = None
-    apps: list[str] = ["meridian"]
 
 
 class UpdateUserRequest(BaseModel):
@@ -46,12 +44,6 @@ def admin_create_user(req: CreateUserRequest, _admin: dict = Depends(require_adm
         is_admin=req.is_admin,
         spending_limit_cents=req.spending_limit_cents,
     )
-    for app_name in req.apps:
-        grant_app_access(
-            user_id, app_name,
-            spending_limit_cents=req.spending_limit_cents,
-            vm_password=req.password if app_name == "vm" else None,
-        )
     return {"id": user_id, "username": req.username}
 
 
@@ -69,7 +61,7 @@ def admin_update_user(user_id: int, req: UpdateUserRequest,
 async def admin_bulk_create(file: UploadFile = File(...),
                             _admin: dict = Depends(require_admin)):
     """Upload a CSV with columns: username, password, name (optional),
-    spending_limit (optional, in dollars), apps (optional, comma-separated e.g. 'meridian,vm')."""
+    spending_limit (optional, in dollars)."""
     content = (await file.read()).decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(content))
     created = []
@@ -85,21 +77,12 @@ async def admin_bulk_create(file: UploadFile = File(...),
         name = row.get("name", "").strip()
         limit = row.get("spending_limit", "")
         limit_cents = int(float(limit) * 100) if limit.strip() else None
-        apps_str = row.get("apps", "").strip()
-        apps = [a.strip() for a in apps_str.split(",") if a.strip()] if apps_str else ["meridian"]
         user_id = create_user(
             username=username,
             password_hash=hash_password(password),
             name=name,
             spending_limit_cents=limit_cents,
         )
-        for app_name in apps:
-            if app_name != "meridian":
-                grant_app_access(
-                    user_id, app_name,
-                    spending_limit_cents=limit_cents,
-                    vm_password=password if app_name == "vm" else None,
-                )
         created.append(username)
     return {"created": created, "skipped": skipped}
 

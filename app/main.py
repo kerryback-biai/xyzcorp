@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.auth.dependencies import hash_password
-from app.database.user_db import init_db, get_user_by_username, create_user, update_user, grant_app_access
+from app.database.user_db import init_db, get_user_by_username, create_user, update_user
 from app.auth.routes import router as auth_router
 from app.admin.routes import router as admin_router
 from app.chat.routes import router as chat_router
@@ -21,15 +21,13 @@ def ensure_admin():
     if existing:
         if not existing["is_admin"]:
             update_user(existing["id"], is_admin=True)
-        user_id = existing["id"]
     else:
-        user_id = create_user(
+        create_user(
             username=settings.admin_user,
             password_hash=hash_password(settings.admin_password),
             name="Admin",
             is_admin=True,
         )
-    grant_app_access(user_id, "vm", vm_password=settings.admin_password)
 
 
 @asynccontextmanager

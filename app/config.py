@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 24
     admin_user: str = ""
     admin_password: str = ""
-    app_name: str = "meridian"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

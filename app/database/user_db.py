@@ -4,8 +4,6 @@ from contextlib import contextmanager
 
 from app.config import settings
 
-APP_NAME = settings.app_name
-
 
 def get_connection():
     conn = psycopg2.connect(settings.database_url)
@@ -37,6 +35,7 @@ def init_db():
                     name TEXT NOT NULL DEFAULT '',
                     is_admin BOOLEAN DEFAULT FALSE,
                     is_active BOOLEAN DEFAULT TRUE,
+                    spending_limit_cents INTEGER DEFAULT 1000,
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 );
 
@@ -45,17 +44,7 @@ def init_db():
                 EXCEPTION WHEN undefined_column THEN NULL;
                 END $$;
 
-                CREATE TABLE IF NOT EXISTS app_access (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    app_name TEXT NOT NULL,
-                    spending_limit_cents INTEGER DEFAULT 1000,
-                    vm_password TEXT,
-                    granted_at TIMESTAMPTZ DEFAULT NOW(),
-                    UNIQUE (user_id, app_name)
-                );
-
-                ALTER TABLE app_access ADD COLUMN IF NOT EXISTS vm_password TEXT;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS spending_limit_cents INTEGER DEFAULT 1000;
 
                 CREATE TABLE IF NOT EXISTS meridian_usage_log (
                     id SERIAL PRIMARY KEY,
@@ -79,7 +68,6 @@ def init_db():
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 );
 
-                CREATE INDEX IF NOT EXISTS idx_app_access_app ON app_access(app_name);
                 CREATE INDEX IF NOT EXISTS idx_meridian_usage_user ON meridian_usage_log(user_id);
                 CREATE INDEX IF NOT EXISTS idx_meridian_usage_time ON meridian_usage_log(created_at);
             """)
@@ -107,33 +95,11 @@ def create_user(username: str, password_hash: str, name: str = "",
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """INSERT INTO users (username, password_hash, name, is_admin)
-                   VALUES (%s, %s, %s, %s) RETURNING id""",
-                (username, password_hash, name, is_admin)
+                """INSERT INTO users (username, password_hash, name, is_admin, spending_limit_cents)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (username, password_hash, name, is_admin, limit)
             )
-            user_id = cur.fetchone()[0]
-            cur.execute(
-                """INSERT INTO app_access (user_id, app_name, spending_limit_cents)
-                   VALUES (%s, %s, %s)""",
-                (user_id, APP_NAME, limit)
-            )
-            return user_id
-
-
-def grant_app_access(user_id: int, app_name: str,
-                     spending_limit_cents: int | None = None,
-                     vm_password: str | None = None) -> None:
-    limit = spending_limit_cents or settings.default_spending_limit_cents
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """INSERT INTO app_access (user_id, app_name, spending_limit_cents, vm_password)
-                   VALUES (%s, %s, %s, %s)
-                   ON CONFLICT (user_id, app_name) DO UPDATE SET
-                       spending_limit_cents = COALESCE(EXCLUDED.spending_limit_cents, app_access.spending_limit_cents),
-                       vm_password = COALESCE(EXCLUDED.vm_password, app_access.vm_password)""",
-                (user_id, app_name, limit, vm_password)
-            )
+            return cur.fetchone()[0]
 
 
 def list_users() -> list[dict]:
@@ -141,39 +107,27 @@ def list_users() -> list[dict]:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
                 SELECT u.id, u.username, u.name, u.is_admin, u.is_active,
-                       COALESCE(a.spending_limit_cents, %s) as spending_limit_cents,
+                       u.spending_limit_cents,
                        u.created_at,
                        COALESCE(SUM(l.cost_cents), 0) as total_cost_cents
                 FROM users u
-                LEFT JOIN app_access a ON u.id = a.user_id AND a.app_name = %s
                 LEFT JOIN meridian_usage_log l ON u.id = l.user_id
-                WHERE a.id IS NOT NULL OR u.is_admin = TRUE
-                GROUP BY u.id, a.spending_limit_cents
+                GROUP BY u.id
                 ORDER BY u.created_at DESC
-            """, (settings.default_spending_limit_cents, APP_NAME))
+            """)
             return [dict(r) for r in cur.fetchall()]
 
 
 def update_user(user_id: int, **kwargs) -> None:
-    user_fields = {"name", "is_active", "is_admin", "password_hash"}
-    access_fields = {"spending_limit_cents"}
-
-    user_updates = {k: v for k, v in kwargs.items() if k in user_fields}
-    access_updates = {k: v for k, v in kwargs.items() if k in access_fields}
-
+    allowed = {"name", "is_active", "is_admin", "password_hash", "spending_limit_cents"}
+    updates = {k: v for k, v in kwargs.items() if k in allowed}
+    if not updates:
+        return
     with get_db() as conn:
         with conn.cursor() as cur:
-            if user_updates:
-                set_clause = ", ".join(f"{k} = %s" for k in user_updates)
-                values = list(user_updates.values()) + [user_id]
-                cur.execute(f"UPDATE users SET {set_clause} WHERE id = %s", values)
-            if access_updates:
-                set_clause = ", ".join(f"{k} = %s" for k in access_updates)
-                values = list(access_updates.values()) + [user_id, APP_NAME]
-                cur.execute(
-                    f"UPDATE app_access SET {set_clause} WHERE user_id = %s AND app_name = %s",
-                    values
-                )
+            set_clause = ", ".join(f"{k} = %s" for k in updates)
+            values = list(updates.values()) + [user_id]
+            cur.execute(f"UPDATE users SET {set_clause} WHERE id = %s", values)
 
 
 def log_usage(user_id: int, input_tokens: int, output_tokens: int,
