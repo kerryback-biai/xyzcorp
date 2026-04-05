@@ -30,10 +30,26 @@ def ensure_admin():
         )
 
 
+SEED_USERS = [
+    ("kerry_back", "Kerry Back"),
+    ("kelcie_wold", "Kelcie Wold"),
+]
+SEED_PASSWORD = "execed@rice"
+
+
+def seed_users():
+    pw_hash = hash_password(SEED_PASSWORD)
+    for username, name in SEED_USERS:
+        if not get_user_by_username(username):
+            create_user(username=username, password_hash=pw_hash, name=name,
+                        is_admin=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     ensure_admin()
+    seed_users()
     yield
 
 

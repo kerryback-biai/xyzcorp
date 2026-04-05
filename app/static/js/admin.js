@@ -55,6 +55,14 @@ async function loadUsers() {
                 <td class="cost">${formatCost(u.spending_limit_cents)}</td>
                 <td class="text-end cost">${formatCost(u.total_cost_cents)}</td>
                 <td class="text-end cost ${isOver ? 'text-danger fw-bold' : ''}">${formatCost(remaining)}</td>
+                <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary btn-sm" title="${u.is_active ? 'Disable' : 'Enable'}" onclick="toggleActive(${u.id}, ${!u.is_active})">${u.is_active ? 'Disable' : 'Enable'}</button>
+                        <button class="btn btn-outline-secondary btn-sm" title="${u.is_admin ? 'Remove admin' : 'Make admin'}" onclick="toggleAdmin(${u.id}, ${!u.is_admin})">${u.is_admin ? 'Unadmin' : 'Admin'}</button>
+                        <button class="btn btn-outline-secondary btn-sm" title="Reset password" onclick="resetPassword(${u.id}, '${u.username}')">Reset PW</button>
+                        <button class="btn btn-outline-danger btn-sm" title="Delete user" onclick="deleteUser(${u.id}, '${u.username}')">Delete</button>
+                    </div>
+                </td>
             `;
             tbody.appendChild(tr);
         }
@@ -100,6 +108,40 @@ async function loadUsage() {
     } catch (e) {
         console.error('Failed to load usage:', e);
     }
+}
+
+// Action handlers
+async function toggleActive(userId, newState) {
+    await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ is_active: newState }),
+    });
+    loadUsers();
+}
+
+async function toggleAdmin(userId, newState) {
+    await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ is_admin: newState }),
+    });
+    loadUsers();
+}
+
+async function resetPassword(userId, username) {
+    if (!confirm(`Reset password for ${username} to the default?`)) return;
+    await fetch(`/api/admin/users/${userId}/reset-password`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ password: 'execed@rice' }),
+    });
+    alert(`Password for ${username} has been reset.`);
+}
+
+async function deleteUser(userId, username) {
+    if (!confirm(`Delete user ${username}? This cannot be undone.`)) return;
+    await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE', headers,
+    });
+    loadUsers();
 }
 
 // Create user form

@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from app.admin.dependencies import require_admin
 from app.auth.dependencies import hash_password
 from app.database.user_db import (
-    list_users, create_user, update_user, get_user_by_username, get_usage_summary,
+    list_users, create_user, update_user, delete_user,
+    get_user_by_username, get_usage_summary,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -26,6 +27,10 @@ class UpdateUserRequest(BaseModel):
     is_active: bool | None = None
     is_admin: bool | None = None
     spending_limit_cents: int | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    password: str
 
 
 @router.get("/users")
@@ -54,6 +59,21 @@ def admin_update_user(user_id: int, req: UpdateUserRequest,
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
     update_user(user_id, **updates)
+    return {"ok": True}
+
+
+@router.post("/users/{user_id}/reset-password")
+def admin_reset_password(user_id: int, req: ResetPasswordRequest,
+                         _admin: dict = Depends(require_admin)):
+    update_user(user_id, password_hash=hash_password(req.password))
+    return {"ok": True}
+
+
+@router.delete("/users/{user_id}")
+def admin_delete_user(user_id: int, _admin: dict = Depends(require_admin)):
+    if _admin["id"] == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    delete_user(user_id)
     return {"ok": True}
 
 

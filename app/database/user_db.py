@@ -120,6 +120,14 @@ def list_users() -> list[dict]:
             return [dict(r) for r in cur.fetchall()]
 
 
+def delete_user(user_id: int) -> None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM meridian_usage_log WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM meridian_alerts WHERE user_id = %s", (user_id,))
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+
+
 def update_user(user_id: int, **kwargs) -> None:
     allowed = {"name", "is_active", "is_admin", "password_hash", "spending_limit_cents"}
     updates = {k: v for k, v in kwargs.items() if k in allowed}

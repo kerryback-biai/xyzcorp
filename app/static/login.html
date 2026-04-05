@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BI to AI — Login</title>
+    <title>XYZ Corp Databot Simulation — Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/flatly/bootstrap.min.css">
     <style>
         body { background: #f8f9fa; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .login-card { max-width: 520px; width: 100%; }
         .error-msg { display: none; }
+        .about-btn { background: rgba(0,0,0,0.08); border: none; color: #6c757d; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; vertical-align: middle; margin-left: 6px; }
+        .about-btn:hover { background: rgba(0,0,0,0.15); color: #495057; transform: scale(1.1); }
+        .about-tooltip { position: absolute; bottom: 34px; right: -10px; background: #343a40; color: #f8f9fa; padding: 10px 14px; border-radius: 8px; font-size: 0.78rem; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; pointer-events: none; box-shadow: 0 2px 12px rgba(0,0,0,0.25); z-index: 10; }
+        .about-btn:hover .about-tooltip { opacity: 1; visibility: visible; pointer-events: auto; }
+        .about-tooltip::after { content: ''; position: absolute; bottom: -4px; right: 16px; width: 8px; height: 8px; background: #343a40; transform: rotate(45deg); }
     </style>
 </head>
 <body>
     <div class="login-card card shadow-sm">
         <div class="card-body p-4">
-            <h5 class="card-title text-center mb-1">BI to AI: Making Data-Driven Decisions with Agentic AI</h5>
-            <p class="text-center text-muted mb-1" style="font-size: 0.85rem;">Rice Business Executive Education</p>
-            <p class="text-center text-muted mb-1" style="font-size: 0.85rem;">Professor Kerry Back</p>
-            <p class="text-center text-muted mb-4" style="font-size: 0.85rem; font-weight: 500;">Enterprise Data with AI Simulator</p>
+            <h5 class="card-title text-center mb-1">
+                XYZ Corp Databot Simulation
+                <button type="button" class="about-btn">&#9432;<span class="about-tooltip">Developed by Kerry Back,<br>J. Howard Creekmore Professor of Finance<br>and Professor of Economics,<br>Rice University</span></button>
+            </h5>
+            <p class="text-center text-muted mb-4" style="font-size: 0.95rem;">Rice Business Executive Education</p>
             <div class="alert alert-danger error-msg" id="error"></div>
             <form id="login-form">
                 <div class="mb-3">
