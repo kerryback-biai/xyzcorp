@@ -3,46 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XYZ Corp Databot Simulation — Login</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/flatly/bootstrap.min.css">
+    <title>XYZ Corp Simulation</title>
     <style>
-        body { background: #f8f9fa; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .login-card { max-width: 520px; width: 100%; }
-        .error-msg { display: none; }
-        .about-btn { background: rgba(0,0,0,0.08); border: none; color: #6c757d; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; vertical-align: middle; margin-left: 6px; }
-        .about-btn:hover { background: rgba(0,0,0,0.15); color: #495057; transform: scale(1.1); }
-        .about-tooltip { position: absolute; bottom: 34px; right: -10px; background: #343a40; color: #f8f9fa; padding: 10px 14px; border-radius: 8px; font-size: 0.78rem; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; pointer-events: none; box-shadow: 0 2px 12px rgba(0,0,0,0.25); z-index: 10; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #7C7E7F; color: #333; height: 100vh; }
+        .banner { text-align: center; padding: 24px 0 8px; position: relative; }
+        .banner h1 { font-size: 1.5em; margin: 0; color: #ffffff; }
+        .banner p { margin: 4px 0; font-size: 0.95em; color: #e0e0e0; }
+        .card { max-width: 420px; margin: 40px auto; background: #ffffff; border-radius: 4px; padding: 32px; box-shadow: 0 0 20px rgba(0,0,0,0.2), 0 5px 5px rgba(0,0,0,0.24); }
+        .card h2 { margin: 0 0 20px; font-size: 1.1em; text-align: center; color: #333; font-weight: normal; }
+        label { display: block; margin-bottom: 4px; font-size: 0.85em; color: #555; }
+        input { width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 4px; background: #f2f2f2; color: #333; font-size: 1em; box-sizing: border-box; }
+        input:focus { outline: none; border-color: #00205B; }
+        button { padding: 10px; border: none; border-radius: 4px; background: #00205B; color: #ffffff; font-size: 1em; font-weight: 600; cursor: pointer; text-transform: uppercase; }
+        button:hover { background: #00205B; filter: brightness(85%); }
+        .btn-full { width: 100%; }
+        .error { color: #cc0000; text-align: center; margin-bottom: 12px; font-size: 0.9em; display: none; }
+        .pw-container { position: relative; }
+        .pw-container input { padding-right: 60px; }
+        .pw-toggle { position: absolute; right: 8px; top: 8px; background: none; border: none; color: #555; font-size: 0.8em; text-transform: none; font-weight: normal; padding: 4px 8px; }
+        .pw-toggle:hover { background: none; filter: none; color: #333; }
+        .about-btn { position: absolute; bottom: 5px; right: 20px; background: rgba(255,255,255,0.15); border: none; color: #e0e0e0; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .about-btn:hover { background: rgba(255,255,255,0.3); color: #fff; transform: scale(1.1); }
+        .about-tooltip { position: absolute; bottom: 40px; right: 0; background: #00205B; color: #fff; padding: 10px 14px; border-radius: 8px; font-size: 0.8em; line-height: 1.5; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; pointer-events: none; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
         .about-btn:hover .about-tooltip { opacity: 1; visibility: visible; pointer-events: auto; }
-        .about-tooltip::after { content: ''; position: absolute; bottom: -4px; right: 16px; width: 8px; height: 8px; background: #343a40; transform: rotate(45deg); }
+        .about-tooltip::before { content: ''; position: absolute; bottom: -4px; right: 12px; width: 8px; height: 8px; background: #00205B; transform: rotate(45deg); }
     </style>
 </head>
 <body>
-    <div class="login-card card shadow-sm">
-        <div class="card-body p-4">
-            <h5 class="card-title text-center mb-1">
-                XYZ Corp Databot Simulation
-                <button type="button" class="about-btn">&#9432;<span class="about-tooltip">Developed by Kerry Back,<br>J. Howard Creekmore Professor of Finance<br>and Professor of Economics,<br>Rice University</span></button>
-            </h5>
-            <p class="text-center text-muted mb-4" style="font-size: 0.95rem;">Rice Business Executive Education</p>
-            <div class="alert alert-danger error-msg" id="error"></div>
-            <form id="login-form">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" required autofocus>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" id="password" required>
-                        <button class="btn btn-outline-secondary" type="button" id="toggle-pw" tabindex="-1">Show</button>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary w-100" id="submit-btn">Sign In</button>
-            </form>
-        </div>
+    <div class="banner">
+        <h1>XYZ Corp Simulation</h1>
+    </div>
+    <div class="card">
+        <h2>Log in to your account</h2>
+        <p class="error" id="error"></p>
+        <form id="login-form">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="firstname_lastname" required autofocus>
+            <label for="password">Password</label>
+            <div class="pw-container">
+                <input type="password" id="password" required>
+                <button type="button" class="pw-toggle" id="toggle-pw">Show</button>
+            </div>
+            <button type="submit" class="btn-full" id="submit-btn">Log In</button>
+        </form>
     </div>
     <script>
-        // Redirect if already logged in
         if (localStorage.getItem('token')) {
             window.location.href = '/index.html';
         }
@@ -85,7 +90,7 @@
                 errorEl.style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Sign In';
+                btn.textContent = 'Log In';
             }
         });
     </script>

@@ -8,7 +8,6 @@ from app.config import settings
 from app.auth.dependencies import hash_password
 from app.database.user_db import init_db, get_user_by_username, create_user, update_user
 from app.auth.routes import router as auth_router
-from app.admin.routes import router as admin_router
 from app.chat.routes import router as chat_router
 
 STATIC_DIR = "app/static"
@@ -57,7 +56,6 @@ app = FastAPI(title="AI Data Assistant", lifespan=lifespan)
 
 # API routes first
 app.include_router(auth_router)
-app.include_router(admin_router)
 app.include_router(chat_router)
 
 # Static assets (CSS, JS)
@@ -91,6 +89,3 @@ async def index_page():
     return FileResponse(f"{STATIC_DIR}/index.html")
 
 
-@app.get("/admin.html")
-async def admin_page():
-    return FileResponse(f"{STATIC_DIR}/admin.html")

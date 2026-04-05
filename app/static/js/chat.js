@@ -12,7 +12,6 @@ const sendBtn = document.getElementById('send-btn');
 const newChatBtn = document.getElementById('new-chat-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userNameEl = document.getElementById('user-name');
-const adminLink = document.getElementById('admin-link');
 
 // State
 let conversationHistory = [];
@@ -20,10 +19,6 @@ let isStreaming = false;
 
 // Init
 userNameEl.textContent = localStorage.getItem('userName') || '';
-if (localStorage.getItem('isAdmin') === 'true') {
-    adminLink.style.display = 'inline';
-    adminLink.href = '/admin.html';
-}
 
 // Configure marked
 marked.setOptions({
