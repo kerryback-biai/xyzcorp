@@ -9,6 +9,7 @@ from app.chat.tools import get_tools
 from app.chat.stream import sse_text, sse_tool_status, sse_image, sse_file, sse_error, sse_done
 from app.chat.code_executor import execute_python, execute_node, read_skill_docs
 from app.database.duckdb_manager import execute_query
+from app.chat.rag import search_documents
 
 MODEL = "claude-sonnet-4-20250514"
 MAX_TOKENS = 8192
@@ -36,6 +37,9 @@ def _execute_tool(name: str, tool_input: dict) -> str:
     if name == "read_skill_docs":
         result = read_skill_docs(tool_input["skill"])
         return json.dumps(result, default=str)
+    if name == "search_documents":
+        result = search_documents(tool_input["query"])
+        return json.dumps(result, default=str)
     return json.dumps({"error": f"Unknown tool: {name}"})
 
 
@@ -47,6 +51,7 @@ _TOOL_STATUS = {
     "run_python": "Running Python code...",
     "run_node": "Running Node.js code...",
     "read_skill_docs": "Loading API docs...",
+    "search_documents": "Searching corporate documents...",
 }
 
 

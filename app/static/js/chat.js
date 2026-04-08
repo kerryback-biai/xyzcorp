@@ -60,7 +60,7 @@ logoutBtn.addEventListener('click', () => {
 function showWelcome() {
     messagesEl.innerHTML = `
         <div class="welcome">
-            <p class="mt-3">I'm the XYZ Corp Custom Chatbot. Ask me anything &mdash; general questions, business topics, or data queries across our enterprise systems.</p>
+            <p class="mt-3">Ask about our corporate documents, ask for data and analysis from our enterprise data systems, or ask general business questions.</p>
             <p class="mt-2">
                 <button class="btn btn-sm btn-outline-secondary" type="button" id="toggle-systems">
                     View data systems

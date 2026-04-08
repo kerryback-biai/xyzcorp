@@ -49,10 +49,13 @@ async def lifespan(app: FastAPI):
     init_db()
     ensure_admin()
     seed_users()
+    # Build RAG vector store from documents/
+    from app.chat.rag import ingest_documents
+    ingest_documents()
     yield
 
 
-app = FastAPI(title="AI Data Assistant", lifespan=lifespan)
+app = FastAPI(title="XYZ Corp Chatbot", lifespan=lifespan)
 
 # API routes first
 app.include_router(auth_router)

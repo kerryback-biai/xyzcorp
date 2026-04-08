@@ -4,3 +4,4 @@ __pycache__/
 app.db
 .venv/
 venv/
+vectorstore/

@@ -1,4 +1,4 @@
-"""Claude tool definitions for the data assistant."""
+"""Claude tool definitions for the chatbot."""
 from app.database.duckdb_manager import SYSTEM_NAMES
 
 QUERY_DATABASE_TOOL = {
@@ -95,5 +95,26 @@ READ_SKILL_DOCS_TOOL = {
 }
 
 
+SEARCH_DOCUMENTS_TOOL = {
+    "name": "search_documents",
+    "description": (
+        "Search the corporate document knowledge base (policies, handbooks, procedures, memos, contracts). "
+        "Use this when the user asks about company policies, rules, guidelines, or any information "
+        "that would live in written documents rather than in transactional/numerical data. "
+        "Returns the most relevant document excerpts with source references."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "A natural-language search query describing what information you need.",
+            },
+        },
+        "required": ["query"],
+    },
+}
+
+
 def get_tools() -> list[dict]:
-    return [QUERY_DATABASE_TOOL, RUN_PYTHON_TOOL, RUN_NODE_TOOL, READ_SKILL_DOCS_TOOL]
+    return [QUERY_DATABASE_TOOL, RUN_PYTHON_TOOL, RUN_NODE_TOOL, READ_SKILL_DOCS_TOOL, SEARCH_DOCUMENTS_TOOL]
