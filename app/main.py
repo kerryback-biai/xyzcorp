@@ -33,7 +33,7 @@ SEED_USERS = [
     ("kerry_back", "Kerry Back"),
     ("kelcie_wold", "Kelcie Wold"),
 ]
-SEED_PASSWORD = "jgsb!ai!"
+SEED_PASSWORD = "jgsbai"
 
 
 def seed_users():
