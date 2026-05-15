@@ -165,6 +165,7 @@ async function sendMessage() {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullText = '';
+        let mediaEls = [];  // Track charts, files, and status indicators
 
         while (true) {
             const { done, value } = await reader.read();
@@ -184,15 +185,31 @@ async function sendMessage() {
                     if (event.type === 'text') {
                         fullText += event.content;
                         contentEl.innerHTML = marked.parse(fullText);
+                        // Re-append all media elements after text re-render
+                        for (const el of mediaEls) {
+                            contentEl.appendChild(el);
+                        }
                     } else if (event.type === 'tool_status') {
                         const indicator = document.createElement('div');
                         indicator.className = 'tool-indicator';
                         indicator.textContent = event.message;
+                        mediaEls.push(indicator);
                         contentEl.appendChild(indicator);
                     } else if (event.type === 'image') {
+                        const chartNum = mediaEls.filter(el => el.classList.contains('chart-container')).length + 1;
+                        const container = document.createElement('div');
+                        container.className = 'chart-container';
                         const img = document.createElement('img');
                         img.src = `data:image/png;base64,${event.data}`;
-                        contentEl.appendChild(img);
+                        container.appendChild(img);
+                        const link = document.createElement('a');
+                        link.href = img.src;
+                        link.download = `chart-${chartNum}.png`;
+                        link.className = 'file-download';
+                        link.innerHTML = `📊 Download chart-${chartNum}.png`;
+                        container.appendChild(link);
+                        mediaEls.push(container);
+                        contentEl.appendChild(container);
                     } else if (event.type === 'file') {
                         const link = document.createElement('a');
                         link.href = event.url;
@@ -200,6 +217,7 @@ async function sendMessage() {
                         link.className = 'file-download';
                         link.innerHTML = `📄 Download ${event.filename}`;
                         link.target = '_blank';
+                        mediaEls.push(link);
                         contentEl.appendChild(link);
                     } else if (event.type === 'error') {
                         contentEl.innerHTML += `<div class="alert alert-danger">${event.message}</div>`;

@@ -88,6 +88,15 @@ body {
     padding: 0.25rem 0;
 }
 
+.chart-container {
+    margin: 0.5rem 0;
+}
+
+.chart-container .file-download {
+    display: block;
+    width: fit-content;
+}
+
 .file-download {
     display: inline-block;
     margin: 0.5rem 0;
