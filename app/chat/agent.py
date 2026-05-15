@@ -11,7 +11,7 @@ from app.chat.code_executor import execute_python, execute_node, read_skill_docs
 from app.database.duckdb_manager import execute_query
 from app.chat.rag import search_documents
 
-MODEL = "claude-sonnet-4-6-latest"
+MODEL = "claude-sonnet-4-6"
 MAX_TOKENS = 8192
 MAX_TOOL_ROUNDS = 12
 MAX_HISTORY_CHARS = 100_000  # Trim history if it exceeds this
