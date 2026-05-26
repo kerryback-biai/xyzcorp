@@ -81,8 +81,6 @@ _CODE_TOOLS = {"run_python", "run_node"}
 
 # Status messages per tool
 _TOOL_STATUS = {
-    "run_python": "Running Python code...",
-    "run_node": "Running Node.js code...",
     "read_skill_docs": "Loading API docs...",
     "search_documents": "Searching corporate documents...",
 }
@@ -164,17 +162,24 @@ def _run_agent_sync(
 
             # Process tool calls
             tool_results = []
+            tool_idx = 0
             for block in response.content:
                 if block.type == "tool_use":
                     logger.info(f"Round {_round + 1}: executing tool {block.name}")
                     tool_start = time.time()
+                    status_id = f"tool-{_round}-{tool_idx}"
+                    tool_idx += 1
 
                     # Show status
                     if block.name == "query_database":
                         system_name = block.input.get("system", "database") if isinstance(block.input, dict) else "database"
-                        yield sse_tool_status(f"Querying {system_name}...")
+                        yield sse_tool_status(f"Querying {system_name}...", status_id)
+                    elif block.name == "run_python":
+                        yield sse_tool_status("Analyzing data...", status_id)
+                    elif block.name == "run_node":
+                        yield sse_tool_status("Generating document...", status_id)
                     elif block.name in _TOOL_STATUS:
-                        yield sse_tool_status(_TOOL_STATUS[block.name])
+                        yield sse_tool_status(_TOOL_STATUS[block.name], status_id)
 
                     # Execute the tool (with keepalives to prevent proxy timeout)
                     result_str, raw_result = None, None
@@ -187,10 +192,27 @@ def _run_agent_sync(
                     tool_elapsed = time.time() - tool_start
                     logger.info(f"Round {_round + 1}: tool {block.name} completed in {tool_elapsed:.1f}s")
 
+                    # Show completion status
+                    if block.name == "query_database":
+                        system_name = block.input.get("system", "database") if isinstance(block.input, dict) else "database"
+                        yield sse_tool_status(f"Querying {system_name}... done", status_id)
+                    elif block.name == "run_python":
+                        if raw_result.get("charts"):
+                            yield sse_tool_status("Generating charts...", status_id)
+                        else:
+                            yield sse_tool_status("Analysis complete", status_id)
+                    elif block.name == "run_node":
+                        yield sse_tool_status("Document ready", status_id)
+                    elif block.name == "search_documents":
+                        yield sse_tool_status("Search complete", status_id)
+
                     # For code tools, emit charts and file links
                     if block.name in _CODE_TOOLS:
-                        for chart_b64 in raw_result.get("charts", []):
+                        charts = raw_result.get("charts", [])
+                        for chart_b64 in charts:
                             yield sse_image(chart_b64)
+                        if charts and block.name == "run_python":
+                            yield sse_tool_status("Charts ready", status_id)
                         for file_info in raw_result.get("files", []):
                             yield sse_file(file_info["filename"], file_info["url"])
 

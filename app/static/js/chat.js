@@ -190,11 +190,20 @@ async function sendMessage() {
                             contentEl.appendChild(el);
                         }
                     } else if (event.type === 'tool_status') {
-                        const indicator = document.createElement('div');
-                        indicator.className = 'tool-indicator';
-                        indicator.textContent = event.message;
-                        mediaEls.push(indicator);
-                        contentEl.appendChild(indicator);
+                        let indicator;
+                        if (event.id) {
+                            indicator = contentEl.querySelector(`[data-status-id="${event.id}"]`);
+                        }
+                        if (indicator) {
+                            indicator.textContent = event.message;
+                        } else {
+                            indicator = document.createElement('div');
+                            indicator.className = 'tool-indicator';
+                            indicator.textContent = event.message;
+                            if (event.id) indicator.dataset.statusId = event.id;
+                            mediaEls.push(indicator);
+                            contentEl.appendChild(indicator);
+                        }
                     } else if (event.type === 'image') {
                         const chartNum = mediaEls.filter(el => el.classList.contains('chart-container')).length + 1;
                         const container = document.createElement('div');

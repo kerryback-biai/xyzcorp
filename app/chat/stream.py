@@ -14,8 +14,8 @@ def sse_text(text: str) -> str:
     return sse_event("text", text)
 
 
-def sse_tool_status(message: str) -> str:
-    return sse_event("tool_status", {"message": message})
+def sse_tool_status(message: str, status_id: str = "") -> str:
+    return sse_event("tool_status", {"message": message, "id": status_id})
 
 
 def sse_image(base64_data: str) -> str:
