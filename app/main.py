@@ -52,6 +52,9 @@ async def lifespan(app: FastAPI):
     init_db()
     ensure_admin()
     seed_users()
+    # Load all parquet data into in-memory DuckDB
+    from app.database.duckdb_manager import init_duckdb
+    init_duckdb()
     # Build RAG vector store from documents/
     from app.chat.rag import ingest_documents
     ingest_documents()

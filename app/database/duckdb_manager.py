@@ -1,9 +1,13 @@
+import logging
 import re
+import threading
 from pathlib import Path
 
 import duckdb
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR = settings.data_dir
 M = DATA_DIR
@@ -73,7 +77,18 @@ SYSTEMS = {
     },
 }
 
+# Cross-reference table available to ALL systems (loaded as a global table)
+GLOBAL_TABLES = {
+    "company_xref": M / "company_xref.parquet",
+}
+
 SYSTEM_NAMES = list(SYSTEMS.keys())
+
+# Map table name → system name for query routing
+_TABLE_TO_SYSTEM: dict[str, str] = {}
+for _sys, _tables in SYSTEMS.items():
+    for _tbl in _tables:
+        _TABLE_TO_SYSTEM[_tbl] = _sys
 
 _UNSAFE_PATTERN = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|GRANT|REVOKE)\b",
@@ -81,6 +96,32 @@ _UNSAFE_PATTERN = re.compile(
 )
 
 MAX_ROWS = 500
+
+# Persistent in-memory database — loaded once at startup, shared across requests.
+# DuckDB allows concurrent reads from multiple threads on the same connection.
+_db: duckdb.DuckDBPyConnection | None = None
+_db_lock = threading.Lock()
+
+
+def init_duckdb() -> None:
+    """Load all parquet files into a persistent in-memory DuckDB database."""
+    global _db
+    _db = duckdb.connect()
+    table_count = 0
+    for system_name, tables in SYSTEMS.items():
+        for table_name, parquet_path in tables.items():
+            path_str = str(parquet_path).replace("\\", "/")
+            _db.execute(
+                f"CREATE TABLE {table_name} AS SELECT * FROM read_parquet('{path_str}')"
+            )
+            table_count += 1
+    for table_name, parquet_path in GLOBAL_TABLES.items():
+        path_str = str(parquet_path).replace("\\", "/")
+        _db.execute(
+            f"CREATE TABLE {table_name} AS SELECT * FROM read_parquet('{path_str}')"
+        )
+        table_count += 1
+    logger.info(f"DuckDB: loaded {table_count} tables into memory")
 
 
 def validate_sql(sql: str) -> None:
@@ -92,7 +133,7 @@ def validate_sql(sql: str) -> None:
 
 
 def execute_query(sql: str, system: str) -> dict:
-    """Execute a read-only SQL query against a specific enterprise system."""
+    """Execute a read-only SQL query against the in-memory database."""
     if system not in SYSTEMS:
         return {"error": f"Unknown system: {system}. Available: {SYSTEM_NAMES}"}
 
@@ -102,20 +143,14 @@ def execute_query(sql: str, system: str) -> dict:
         return {"error": str(e)}
 
     try:
-        con = duckdb.connect()
-
-        for view_name, parquet_path in SYSTEMS[system].items():
-            path_str = str(parquet_path).replace("\\", "/")
-            con.execute(f"CREATE VIEW {view_name} AS SELECT * FROM read_parquet('{path_str}')")
-
         sql_upper = sql.strip().upper()
         if "LIMIT" not in sql_upper:
             sql = f"SELECT * FROM ({sql.rstrip(';')}) sub LIMIT {MAX_ROWS}"
 
-        result = con.execute(sql)
-        columns = [desc[0] for desc in result.description]
-        rows = result.fetchall()
-        con.close()
+        with _db_lock:
+            result = _db.execute(sql)
+            columns = [desc[0] for desc in result.description]
+            rows = result.fetchall()
 
         data = [dict(zip(columns, row)) for row in rows]
 

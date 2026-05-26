@@ -19,7 +19,7 @@ This company runs 10 separate enterprise systems. You CANNOT join across systems
 Key cross-system tools:
 - **workday.wd_system_ids**: maps employee IDs across all CRM systems
 - **netsuite_corporate.ns_acct_mapping**: maps account codes between divisions for consolidated financials
-- **Customer matching**: ~25 companies buy from multiple divisions under different names — use fuzzy string matching with difflib
+- **company_xref**: lookup table mapping company names across CRM systems. Columns: `canonical_name`, `salesforce_name`, `legacy_crm_name`, `hubspot_name`. Available in ALL systems — query it directly with any system parameter. Use this for cross-division customer matching instead of fuzzy matching. Example: `SELECT * FROM company_xref WHERE salesforce_name = '3M Company'`
 
 When a question spans divisions or systems, explain which systems you're querying and why.
 
