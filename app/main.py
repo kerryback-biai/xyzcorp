@@ -1,6 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+
+logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 

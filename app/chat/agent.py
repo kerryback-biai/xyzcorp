@@ -1,9 +1,13 @@
 """Claude agent loop with streaming and tool dispatch."""
 import json
+import logging
+import time
 from concurrent.futures import ThreadPoolExecutor, Future
 from pathlib import Path
 
 import anthropic
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 from app.chat.tools import get_tools
@@ -117,8 +121,14 @@ def _run_agent_sync(
     total_output_tokens = 0
     total_cache_read = 0
 
+    request_start = time.time()
+    logger.info("Agent request started")
+
     try:
         for _round in range(MAX_TOOL_ROUNDS):
+            round_start = time.time()
+            logger.info(f"Round {_round + 1}/{MAX_TOOL_ROUNDS}: calling Claude API")
+
             with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
@@ -134,6 +144,9 @@ def _run_agent_sync(
 
                 response = stream.get_final_message()
 
+            api_elapsed = time.time() - round_start
+            logger.info(f"Round {_round + 1}: Claude API completed in {api_elapsed:.1f}s, stop_reason={response.stop_reason}")
+
             # Track usage
             total_input_tokens += response.usage.input_tokens
             total_output_tokens += response.usage.output_tokens
@@ -148,6 +161,9 @@ def _run_agent_sync(
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
+                    logger.info(f"Round {_round + 1}: executing tool {block.name}")
+                    tool_start = time.time()
+
                     # Show status
                     if block.name == "query_database":
                         system_name = block.input.get("system", "database") if isinstance(block.input, dict) else "database"
@@ -162,6 +178,9 @@ def _run_agent_sync(
                             yield keepalive
                         if result is not None:
                             result_str, raw_result = result
+
+                    tool_elapsed = time.time() - tool_start
+                    logger.info(f"Round {_round + 1}: tool {block.name} completed in {tool_elapsed:.1f}s")
 
                     # For code tools, emit charts and file links
                     if block.name in _CODE_TOOLS:
@@ -180,8 +199,10 @@ def _run_agent_sync(
             messages.append({"role": "user", "content": tool_results})
 
     except anthropic.APIError as e:
+        logger.error(f"API error after {time.time() - request_start:.1f}s: {e.message}")
         yield sse_error(f"API error: {e.message}")
     except Exception as e:
+        logger.error(f"Error after {time.time() - request_start:.1f}s: {e}", exc_info=True)
         yield sse_error(f"Error: {str(e)}")
 
     # Log usage
@@ -200,6 +221,9 @@ def _run_agent_sync(
             model=MODEL,
             cost_cents=cost_cents,
         )
+
+    total_elapsed = time.time() - request_start
+    logger.info(f"Agent request completed in {total_elapsed:.1f}s (in={total_input_tokens}, out={total_output_tokens})")
 
     yield sse_done()
 
