@@ -17,9 +17,10 @@ from app.database.duckdb_manager import execute_query
 from app.chat.rag import search_documents
 
 MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 8192
+MAX_TOKENS = 4096
 MAX_TOOL_ROUNDS = 12
 MAX_HISTORY_CHARS = 100_000  # Trim history if it exceeds this
+MAX_REQUEST_SECONDS = 90  # Total time budget for the entire agent loop
 
 PROMPTS_DIR = Path(__file__).parent.parent / "system_prompts"
 
@@ -126,6 +127,10 @@ def _run_agent_sync(
 
     try:
         for _round in range(MAX_TOOL_ROUNDS):
+            elapsed = time.time() - request_start
+            if elapsed > MAX_REQUEST_SECONDS:
+                logger.warning(f"Time budget exceeded ({elapsed:.0f}s > {MAX_REQUEST_SECONDS}s), ending agent loop")
+                break
             round_start = time.time()
             logger.info(f"Round {_round + 1}/{MAX_TOOL_ROUNDS}: calling Claude API")
 
