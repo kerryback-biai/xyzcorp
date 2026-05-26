@@ -17,10 +17,10 @@ from app.database.duckdb_manager import execute_query
 from app.chat.rag import search_documents
 
 MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 4096
-MAX_TOOL_ROUNDS = 12
+MAX_TOKENS = 2048
+MAX_TOOL_ROUNDS = 8
 MAX_HISTORY_CHARS = 100_000  # Trim history if it exceeds this
-MAX_REQUEST_SECONDS = 90  # Total time budget for the entire agent loop
+MAX_REQUEST_SECONDS = 55  # Total time budget — Koyeb gateway kills at ~60s
 
 PROMPTS_DIR = Path(__file__).parent.parent / "system_prompts"
 
