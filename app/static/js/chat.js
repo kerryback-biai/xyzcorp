@@ -195,8 +195,13 @@ async function sendMessage() {
                             indicator = contentEl.querySelector(`[data-status-id="${event.id}"]`);
                         }
                         if (indicator) {
-                            indicator.textContent = event.message;
-                        } else {
+                            if (!event.message) {
+                                indicator.remove();
+                                mediaEls = mediaEls.filter(el => el !== indicator);
+                            } else {
+                                indicator.textContent = event.message;
+                            }
+                        } else if (event.message) {
                             indicator = document.createElement('div');
                             indicator.className = 'tool-indicator';
                             indicator.textContent = event.message;

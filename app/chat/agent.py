@@ -132,6 +132,10 @@ def _run_agent_sync(
             round_start = time.time()
             logger.info(f"Round {_round + 1}/{MAX_TOOL_ROUNDS}: calling Claude API")
 
+            if _round > 0:
+                yield sse_tool_status("Thinking...", "thinking")
+
+            first_text = True
             with client.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
@@ -143,6 +147,9 @@ def _run_agent_sync(
                     if event.type == "content_block_delta":
                         if hasattr(event.delta, "type"):
                             if event.delta.type == "text_delta":
+                                if first_text and _round > 0:
+                                    yield sse_tool_status("", "thinking")
+                                    first_text = False
                                 yield sse_text(event.delta.text)
 
                 response = stream.get_final_message()
