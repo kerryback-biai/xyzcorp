@@ -1,5 +1,6 @@
 """Claude agent loop with streaming and tool dispatch."""
 import json
+from concurrent.futures import ThreadPoolExecutor, Future
 from pathlib import Path
 
 import anthropic
@@ -81,6 +82,23 @@ _TOOL_STATUS = {
     "search_documents": "Searching corporate documents...",
 }
 
+SSE_KEEPALIVE = ": keepalive\n\n"
+KEEPALIVE_INTERVAL = 10  # seconds
+
+
+def _execute_tool_with_keepalive(name: str, tool_input: dict):
+    """Run a tool in a thread, yielding (keepalive, None) while waiting,
+    then (None, result) when done."""
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future: Future = executor.submit(_execute_tool, name, tool_input)
+        while True:
+            try:
+                result = future.result(timeout=KEEPALIVE_INTERVAL)
+                yield None, result
+                return
+            except TimeoutError:
+                yield SSE_KEEPALIVE, None
+
 
 def _run_agent_sync(
     message: str,
@@ -137,8 +155,13 @@ def _run_agent_sync(
                     elif block.name in _TOOL_STATUS:
                         yield sse_tool_status(_TOOL_STATUS[block.name])
 
-                    # Execute the tool
-                    result_str, raw_result = _execute_tool(block.name, block.input)
+                    # Execute the tool (with keepalives to prevent proxy timeout)
+                    result_str, raw_result = None, None
+                    for keepalive, result in _execute_tool_with_keepalive(block.name, block.input):
+                        if keepalive is not None:
+                            yield keepalive
+                        if result is not None:
+                            result_str, raw_result = result
 
                     # For code tools, emit charts and file links
                     if block.name in _CODE_TOOLS:
