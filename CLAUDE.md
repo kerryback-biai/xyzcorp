@@ -1,6 +1,6 @@
 # XYZ Corp Data Simulation
 
-Custom AI chatbot for a fictional B2B industrial supplies distributor (~$500M revenue, 3 divisions). Users can ask general questions, hold conversations on any topic, or query enterprise data systems. The app uses DuckDB on bundled Parquet files for data queries and responds with text, visualizations, and documents.
+* [ ] 
 
 ## Stack
 
@@ -29,14 +29,14 @@ Users are managed through a **separate admin service** at `c:\users\kerry\repos\
 
 All require admin JWT auth (`Authorization: Bearer <token>`):
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/users` | List users with usage totals |
-| POST | `/api/admin/users` | Create single user |
-| POST | `/api/admin/users/bulk` | Bulk create from CSV |
-| PATCH | `/api/admin/users/{id}` | Update user fields |
-| POST | `/api/admin/users/{id}/reset-password` | Reset password |
-| DELETE | `/api/admin/users/{id}` | Delete user + usage data |
+| Method | Endpoint                                 | Description                  |
+| ------ | ---------------------------------------- | ---------------------------- |
+| GET    | `/api/admin/users`                     | List users with usage totals |
+| POST   | `/api/admin/users`                     | Create single user           |
+| POST   | `/api/admin/users/bulk`                | Bulk create from CSV         |
+| PATCH  | `/api/admin/users/{id}`                | Update user fields           |
+| POST   | `/api/admin/users/{id}/reset-password` | Reset password               |
+| DELETE | `/api/admin/users/{id}`                | Delete user + usage data     |
 
 ### Database schema (shared `biai-db`)
 
@@ -49,6 +49,7 @@ meridian_alerts (user_id, alert_type, message, acknowledged, created_at)
 ### Startup seed users
 
 On every startup, `seed_users()` ensures these accounts exist:
+
 - `kerry_back` (admin)
 - `kelcie_wold` (admin)
 
@@ -70,11 +71,11 @@ Or prefix individual commands: `KOYEB_TOKEN=... koyeb <command>`
 
 ### Services in kerryback-biai org
 
-| App | Service | Domain |
-|-----|---------|--------|
-| `xyzcorp` | `xyzcorp` | `xyzcorp.rice-business.org`, `xyzcorp.koyeb.app` |
-| `admin` | `admin` | `ai-admin.rice-business.org`, `admin-kerryback-biai-2bb62426.koyeb.app` |
-| `biai-db` | — | Managed PostgreSQL (`biai-db-kerryback-biai-c028876c.koyeb.app`) |
+| App         | Service     | Domain                                                                      |
+| ----------- | ----------- | --------------------------------------------------------------------------- |
+| `xyzcorp` | `xyzcorp` | `xyzcorp.rice-business.org`, `xyzcorp.koyeb.app`                        |
+| `admin`   | `admin`   | `ai-admin.rice-business.org`, `admin-kerryback-biai-2bb62426.koyeb.app` |
+| `biai-db` | —          | Managed PostgreSQL (`biai-db-kerryback-biai-c028876c.koyeb.app`)          |
 
 ### Common CLI commands
 
@@ -114,13 +115,13 @@ koyeb databases list
 
 ### Environment variables (set as Koyeb secrets)
 
-| Variable | Purpose |
-|----------|---------|
-| `ANTHROPIC_API_KEY` | Claude API key |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `SECRET_KEY` | JWT signing key |
-| `ADMIN_USER` | Auto-create admin username |
-| `ADMIN_PASSWORD` | Auto-create admin password |
+| Variable              | Purpose                      |
+| --------------------- | ---------------------------- |
+| `ANTHROPIC_API_KEY` | Claude API key               |
+| `DATABASE_URL`      | PostgreSQL connection string |
+| `SECRET_KEY`        | JWT signing key              |
+| `ADMIN_USER`        | Auto-create admin username   |
+| `ADMIN_PASSWORD`    | Auto-create admin password   |
 
 ### Deployment flow
 
